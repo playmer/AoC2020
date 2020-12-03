@@ -70,7 +70,7 @@ fn string_to_password(password: &String) -> Password {
     let min: i32 = i32::from_str(parts[0]).unwrap();
     let max: i32 = i32::from_str(parts[1]).unwrap();
     let letter: char = char::from_str(parts[2]).unwrap();
-    Password{ password : String::from(parts[3]), min_appearances : min, max_appearances : max, letter : letter}
+    Password{ password : String::from(parts[3]), min_appearances : min, max_appearances : max, letter }
 }
 
 fn day_02()
@@ -95,7 +95,7 @@ fn day_02()
 
 
     matching_passwords = 0;
-    for Password{ password , min_appearances : min, max_appearances : max, letter : letter } in &passwords {
+    for Password{ password , min_appearances : min, max_appearances : max, letter } in &passwords {
         let toboggan_min : usize = *min as usize - 1;
         let toboggan_max : usize = *max as usize - 1;
         let min_char = password.as_bytes()[toboggan_min] as char;
@@ -112,18 +112,85 @@ fn day_02()
 }
 
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum TileType { Ground, Tree }
+struct Map
+{
+    tiles : Vec<Vec<TileType>>, // indexed as `tiles[y][x]`
+}
+
+impl Map
+{
+    fn location(&self, virtual_location : (usize, usize)) -> TileType
+    {
+        let horizontal_map : &Vec<TileType> = &self.tiles[virtual_location.1];
+        let virtual_x = virtual_location.0 % horizontal_map.len();
+        horizontal_map[virtual_x]
+    }
+}
+
+fn u8_to_tile_type(c : &u8) -> TileType
+{
+    match *c as char
+    {
+        '.' => TileType::Ground,
+        '#' => TileType::Tree,
+        _ => panic!()
+    }
+}
+
+fn line_to_tile_vec(password: &String) -> Vec<TileType>
+{
+    password.as_bytes().iter().map(u8_to_tile_type).collect::<Vec<TileType>>()
+}
+
+
+fn map_from_lines(lines : &Vec<String>) -> Map
+{
+    Map{tiles : lines.iter().map(line_to_tile_vec).collect::<Vec<Vec<TileType>>>()}
+}
+
+fn traverseMap(map : &Map, increase_x : usize, increase_y : usize) -> usize
+{
+    let mut trees_hit : usize = 0;
+    let mut position : (usize, usize) = (0, 0);
+    loop
+    {
+        position.0 += increase_x;
+        position.1 += increase_y;
+        let tile = map.location(position);
+
+        if tile == TileType::Tree
+        {
+            trees_hit += 1;
+        }
+        if position.1 >= (map.tiles.len() - 1) { break; }
+    }
+
+    trees_hit
+}
 
 fn day_03()
 {
     println!("Day 3:");
-    let lines = lines_from_file("adventInput_03.txt");
+    let map = map_from_lines(&lines_from_file("adventInput_03.txt"));
 
-    println!("    Part 1: ");
-    println!("    Part 2: ");
+
+    //map.tiles.len()
+
+    println!("    Part 1: {}", traverseMap(&map, 3, 1));
+
+    println!("    Part 2: {}",
+        traverseMap(&map, 1, 1)
+        * traverseMap(&map, 3, 1)
+        * traverseMap(&map, 5, 1)
+        * traverseMap(&map, 7, 1)
+        * traverseMap(&map, 1, 2));
 }
 
 
 fn main() {
     day_01();
     day_02();
+    day_03();
 }
