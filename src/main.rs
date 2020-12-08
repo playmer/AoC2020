@@ -283,6 +283,90 @@ fn purported_passports_from_file(filename: impl AsRef<std::path::Path>) -> Vec<P
 //    PurportedPassport
 //}
 
+fn check_passport_values(
+    byr : &String, //(Birth Year)
+    iyr : &String, //(Issue Year)
+    eyr : &String, //(Expiration Year)
+    hgt : &String, //(Height)
+    hcl : &String, //(Hair Color)
+    ecl : &String, //(Eye Color)
+    pid : &String //(Passport ID)
+    ) -> bool
+{
+    let mut valid = true;
+
+    //byr (Birth Year) - four digits; at least 1920 and at most 2002.
+    valid = valid && (byr.len() == 4);
+    let birth_year = i32::from_str(byr.as_str()).unwrap_or(0);
+    valid = valid && (birth_year >= 1920) && (birth_year <= 2002);
+
+    //iyr (Issue Year) - four digits; at least 2010 and at most 2020.
+    valid = valid && (iyr.len() == 4);
+    let issue_year = i32::from_str(iyr.as_str()).unwrap_or(0);
+    valid = valid && (issue_year >= 2010) && (issue_year <= 2020);
+
+    //eyr (Expiration Year) - four digits; at least 2020 and at most 2030.
+    valid = valid && (eyr.len() == 4);
+    let expiration_year = i32::from_str(eyr.as_str()).unwrap_or(0);
+    valid = valid && (expiration_year >= 2020) && (expiration_year <= 2030);
+
+    //hgt (Height) - a number followed by either cm or in:
+    valid = if hgt.ends_with("cm") //If cm, the number must be at least 150 and at most 193.
+    {
+        let number = hgt.split("cm").collect::<Vec<&str>>();
+        valid = valid && number.len() == 2;
+        let num_value = i32::from_str(number[0]).unwrap_or(0);
+
+        valid = valid && ((150 <= num_value) && (num_value <= 193));
+        valid
+    }
+    else if hgt.ends_with("in") //If in, the number must be at least 59 and at most 76.
+    {
+        let number = hgt.split("in").collect::<Vec<&str>>();
+        valid = valid && number.len() == 2;
+        let num_value = i32::from_str(number[0]).unwrap_or(0);
+
+        valid = valid && ((59 <= num_value) && (num_value <= 76));
+        valid
+    }
+    else
+    {
+        false
+    };
+
+    //hcl (Hair Color) - a # followed by exactly six characters 0-9 or a-f.
+    valid = if  hcl.chars().collect::<Vec<char>>()[0] == '#'
+    {
+        let alpha_range = 'a'..'f';
+        let number_range = '0'..'9';
+        for c in hcl[1..].chars()
+        {
+            valid = valid && ((alpha_range.contains(&c)) || (number_range.contains(&c)))
+        }
+
+        valid && true
+    }
+    else
+    {
+        false
+    };
+
+    //ecl (Eye Color) - exactly one of: amb blu brn gry grn hzl oth.
+    valid = valid &&
+        (ecl == "amb"
+            || ecl == "blu"
+            || ecl == "brn"
+            || ecl == "gry"
+            || ecl == "grn"
+            || ecl == "hzl"
+            || ecl == "oth");
+    //pid (Passport ID) - a nine-digit number, including leading zeroes.
+    valid = valid && (pid.len() == 9);
+    let _expiration_year = i64::from_str(pid.as_str()).unwrap_or(0);
+
+    valid
+}
+
 fn day_04()
 {
     println!("Day 4:");
@@ -297,59 +381,30 @@ fn day_04()
         }
     }
 
+
+
     println!("    Part 1: {}", quote_valids_unquote);
 
 
+    quote_valids_unquote = 0;
     for passport in &passports {
         match passport
         {
             PurportedPassport::Passport(passport) => {
-                let mut valid = true;
-
-                //byr (Birth Year) - four digits; at least 1920 and at most 2002.
-                valid = valid && (passport.byr.len() == 4);
-                let birth_year = i32::from_str(passport.byr.as_str()).unwrap();
-                valid = valid && (birth_year >= 1920) && (birth_year <= 2002);
-
-                //iyr (Issue Year) - four digits; at least 2010 and at most 2020.
-                valid = valid && (passport.iyr.len() == 4);
-                let issue_year = i32::from_str(passport.iyr.as_str()).unwrap();
-                valid = valid && (birth_year >= 2010) && (birth_year <= 2020);
-
-                //eyr (Expiration Year) - four digits; at least 2020 and at most 2030.
-                valid = valid && (passport.eyr.len() == 4);
-                let expiration_year = i32::from_str(passport.eyr.as_str()).unwrap();
-                valid = valid && (birth_year >= 2020) && (birth_year <= 2030);
-
-                //hgt (Height) - a number followed by either cm or in:
-                //If cm, the number must be at least 150 and at most 193.
-                //If in, the number must be at least 59 and at most 76.
-                //hcl (Hair Color) - a # followed by exactly six characters 0-9 or a-f.
-                //ecl (Eye Color) - exactly one of: amb blu brn gry grn hzl oth.
-                valid = valid &&
-                    (passport.ecl == "amb"
-                    || passport.ecl == "blu"
-                    || passport.ecl == "brn"
-                    || passport.ecl == "gry"
-                    || passport.ecl == "grn"
-                    || passport.ecl == "hzl"
-                    || passport.ecl == "oth");
-                //pid (Passport ID) - a nine-digit number, including leading zeroes.
-                valid = valid && (passport.pid.len() == 9);
-                let expiration_year = i64::from_str(passport.pid.as_str()).unwrap();
-
-                if valid {
+                if check_passport_values(&passport.byr, &passport.iyr, &passport.eyr, &passport.hgt, &passport.hcl, &passport.ecl, &passport.pid) {
                     quote_valids_unquote += 1
                 }
             },
-            PurportedPassport::NorthPoleCredentials(_) => {
-                quote_valids_unquote += 1
+            PurportedPassport::NorthPoleCredentials(passport) => {
+                if check_passport_values(&passport.byr, &passport.iyr, &passport.eyr, &passport.hgt, &passport.hcl, &passport.ecl, &passport.pid) {
+                    quote_valids_unquote += 1
+                }
             },
             _ => {}
         }
     }
 
-    println!("    Part 2: ");
+    println!("    Part 2: {}", quote_valids_unquote);
 }
 
 fn main() {
